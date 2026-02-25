@@ -10,6 +10,7 @@ RUN pip install uv
 COPY pyproject.toml uv.lock ./
 RUN uv sync --no-dev --no-install-project
 
+COPY README.md ./
 COPY alembic.ini ./
 COPY alembic ./alembic
 COPY src ./src

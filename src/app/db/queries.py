@@ -18,6 +18,36 @@ LEFT JOIN categories ch ON ch.parent_id = c.id
 GROUP BY c.id, c.name
 """
 
+TOP5_PRODUCTS_LAST_MONTH_SQL = """
+WITH RECURSIVE category_root AS (
+    SELECT id, name, parent_id, id AS root_id, name AS root_name
+    FROM categories
+    WHERE parent_id IS NULL
+    UNION ALL
+    SELECT c.id, c.name, c.parent_id, r.root_id, r.root_name
+    FROM categories c
+    JOIN category_root r ON c.parent_id = r.id
+)
+SELECT
+    n.name AS product_name,
+    cr.root_name AS category_level1,
+    SUM(oi.quantity)::NUMERIC AS total_quantity
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+JOIN nomenclature n ON n.id = oi.nomenclature_id
+LEFT JOIN category_root cr ON cr.id = n.category_id
+WHERE o.created_at >= date_trunc('month', current_date - interval '1 month')
+  AND o.created_at < date_trunc('month', current_date)
+GROUP BY n.id, n.name, cr.root_id, cr.root_name
+ORDER BY total_quantity DESC
+LIMIT 5
+"""
+
+TOP5_PRODUCTS_LAST_MONTH_VIEW_SQL = f"""
+CREATE OR REPLACE VIEW view_top5_products_last_month AS
+{TOP5_PRODUCTS_LAST_MONTH_SQL.strip()}
+"""
+
 
 def client_order_totals():
     return (
